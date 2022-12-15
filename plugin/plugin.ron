@@ -1,0 +1,11 @@
+(
+    name: "Spell checker",
+    description: "Syntax: spell <word>\nExample: spell executeable",
+    bin: (path: "spell_check"),
+    icon: Name("accessories-dictionary"),
+    query: (
+        isolate: true,
+        no_sort: true,
+        regex: "^spell"
+    )
+)
