@@ -2,18 +2,49 @@ use std::io::{self, Write};
 
 use pop_launcher::{PluginResponse, PluginSearchResult, Request};
 
+use crate::comparison::WordScore;
+
+mod comparison;
 mod word_list;
 
 fn main() {
     let mut out = io::stdout().lock();
+    let mut words = Vec::<WordData>::with_capacity(8);
 
     match word_list::load_lists() {
-        Ok((loaded, list)) => {
+        Ok((loaded, lists)) => {
             for line in io::stdin().lines().filter_map(Result::ok) {
                 if let Ok(request) = serde_json::from_str::<Request>(&line) {
                     match request {
                         Request::Search(s) if !s.contains(' ') => {
                             send(&mut out, &loaded);
+                        }
+                        Request::Search(s) => {
+                            let reference_word = &s["spell ".len()..];
+
+                            let mut iter =
+                                lists.iter().enumerate().flat_map(|(list_index, list)| {
+                                    list.iter().map(move |word| WordData {
+                                        word,
+                                        score: comparison::compare(word, reference_word),
+                                        list_index,
+                                    })
+                                });
+
+                            words.clear();
+                            iter.by_ref().take(8).for_each(|word| words.push(word));
+                            words.sort_unstable_by_key(|word| word.score);
+                            if let Some(mut worst_score) = words.last().map(|word| word.score) {
+                                iter.for_each(|word| {
+                                    if word.score < worst_score {
+                                        worst_score = words.pop().unwrap().score;
+                                        let (Ok(index) | Err(index)) = words
+                                            .binary_search_by_key(&word.score, |word| word.score);
+                                        words.insert(index, word);
+                                    }
+                                });
+                            }
+                            send(&mut out, &generate_response(format!("{words:#?}"), ""));
                         }
                         _ => {}
                     }
@@ -44,4 +75,11 @@ fn generate_response(name: impl ToString, description: impl ToString) -> PluginR
         description: description.to_string(),
         ..Default::default()
     })
+}
+
+#[derive(Debug)]
+struct WordData<'a> {
+    word: &'a str,
+    score: WordScore,
+    list_index: usize,
 }

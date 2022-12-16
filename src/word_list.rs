@@ -143,3 +143,17 @@ pub struct WordList {
     words: String,
     len: usize,
 }
+
+impl WordList {
+    pub fn iter(&self) -> impl Iterator<Item = &str> + '_ {
+        self.words.lines()
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.words
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+}
