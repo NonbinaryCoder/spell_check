@@ -20,7 +20,7 @@ fn main() {
                             send(&mut out, &loaded);
                         }
                         Request::Search(s) => {
-                            let reference_word = &s["spell ".len()..];
+                            let reference_word = &s["spell ".len()..].to_lowercase();
 
                             let mut iter =
                                 lists.iter().enumerate().flat_map(|(list_index, list)| {
