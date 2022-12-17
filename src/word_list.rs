@@ -149,10 +149,6 @@ impl WordList {
         self.words.lines()
     }
 
-    pub fn as_str(&self) -> &str {
-        &self.words
-    }
-
     pub fn name(&self) -> &str {
         &self.name
     }
