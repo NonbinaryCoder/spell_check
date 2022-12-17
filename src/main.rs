@@ -4,7 +4,7 @@ use std::{
 };
 
 use comparison::WordScore;
-use pop_launcher::{PluginResponse, PluginSearchResult, Request};
+use pop_launcher::{Indice, PluginResponse, PluginSearchResult, Request};
 use word_list::WordList;
 
 mod comparison;
@@ -52,8 +52,13 @@ fn main() {
                                 });
                             }
                             send(&mut out, &PluginResponse::Clear);
-                            for word in words.drain(..) {
-                                word.send(&mut out, &lists);
+                            for (index, word) in words.iter().enumerate() {
+                                word.send(&mut out, &lists, index as Indice);
+                            }
+                        }
+                        Request::Complete(indice) => {
+                            if let Some(WordData { word, .. }) = words.get(indice as usize) {
+                                send(&mut out, &PluginResponse::Fill(format!("spell {word}")));
                             }
                         }
                         _ => {}
@@ -95,12 +100,17 @@ struct WordData<'a> {
 }
 
 impl<'a> WordData<'a> {
-    pub fn send(self, out: &mut impl Write, lists: &[WordList]) {
-        let language = lists[self.list_index].name();
+    pub fn send(&self, out: &mut impl Write, lists: &[WordList], index: Indice) {
         let score = self.score;
+        let language = lists[self.list_index].name();
         send(
             out,
-            &generate_response(self.word, format!("{score}   •   {language}")),
-        )
+            &PluginResponse::Append(PluginSearchResult {
+                name: self.word.to_owned(),
+                description: format!("{score}   •   {language}"),
+                id: index,
+                ..Default::default()
+            }),
+        );
     }
 }
